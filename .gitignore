@@ -1,0 +1,29 @@
+# Data files (too large, downloaded separately)
+data/cifar-10-python.tar.gz
+data/train_32x32.mat
+data/test_32x32.mat
+data/cifar-10-batches-py/
+
+# Model weights
+outputs/*/best_model.pth
+
+# Cache and build artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*~
