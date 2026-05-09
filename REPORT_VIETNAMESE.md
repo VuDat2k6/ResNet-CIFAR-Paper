@@ -4,7 +4,7 @@
 
 **Môn học**: CS114 — Deep Learning  
 **Bài báo gốc**: He et al., *"Deep Residual Learning for Image Recognition"*, arXiv:1512.03385, 2015  
-**Framework**: PyTorch 2.11.0+cu126  
+**Framework**: PyTorch 2.11.0+cu126 (GPU: NVIDIA GeForce GTX 1650 4GB)  
 **Model**: ResNet-20 (phiên bản CIFAR: 3 giai đoạn, mỗi giai đoạn 3 khối dư, đầu vào 32×32 RGB)  
 **Random Seed**: 42 (tất cả thí nghiệm)  
 **Ngày hoàn thành**: Tháng 5, 2026
@@ -32,12 +32,12 @@ Báo cáo này trình bày việc triển khai mạng **ResNet-20** (phiên bả
 
 | Bộ dữ liệu | Cấu hình | Top-1 Error | Top-1 Accuracy |
 |---|---|---|---|
-| CIFAR-10 | Gốc (ReLU + SGD) | **14.24%** | 85.76% |
-| CIFAR-10 | Tối ưu (SiLU + AdamW + Label Smoothing) | **11.74%** | 88.26% |
-| SVHN | Gốc (ReLU + SGD) | **5.49%** | 94.51% |
-| SVHN | Tối ưu (SiLU + AdamW + Label Smoothing) | **4.17%** | 95.83% |
+| CIFAR-10 | Gốc (ReLU + SGD) | **8.07%** | 91.93% |
+| CIFAR-10 | Tối ưu (SiLU + AdamW + Label Smoothing) | **9.72%** | 90.28% |
+| SVHN | Gốc (ReLU + SGD) | **3.76%** | 96.24% |
+| SVHN | Tối ưu (SiLU + AdamW + Label Smoothing) | **4.26%** | 95.74% |
 
-Việc tối ưu hóa đã giảm sai số Top-1 xuống **2.50 điểm phần trăm** trên CIFAR-10 và **1.32 điểm phần trăm** trên SVHN. Mô hình trên SVHN hội tụ nhanh hơn ~10 lần so với CIFAR-10 do cấu trúc lớp đơn giản hơn của bài toán nhận dạng chữ số.
+Trái với kỳ vọng ban đầu, cấu hình gốc SGD vượt trội hơn cấu hình tối ưu trên cả hai bộ dữ liệu ở 200 epochs. Model trên SVHN hội tụ nhanh hơn đáng kể so với CIFAR-10 do cấu trúc lớp đơn giản hơn của bài toán nhận dạng chữ số. Kết quả CIFAR-10 của chúng tôi (91.93%) vượt qua baseline của bài báo gốc (~91.25%).
 
 ---
 
@@ -213,11 +213,9 @@ Sử dụng **Kaiming Normal initialization** (mode='fan_out', nonlinearity='rel
 | **LR Schedule** | MultiStepLR (milestones=[100,150], γ=0.1) | CosineAnnealingLR |
 | **Loss Function** | CrossEntropyLoss | Label Smoothing CE (ε=0.1) |
 | **Batch Size** | 128 | 128 |
-| **Epochs** | 200 (thực tế: 40*) | 200 (thực tế: 40*) |
+| **Epochs** | 200 | 200 |
 | **Data Augmentation** | RandomCrop(32,4) + HorizontalFlip | Same |
 | **Num Workers** | 0 | 0 |
-
-*Các thí nghiệm thực tế chạy 40 epochs do hạn chế tính toán CPU.
 
 ### 4.3. Chi tiết các kỹ thuật tối ưu hóa
 
@@ -338,31 +336,31 @@ Thay vì step decay cứng nhắc, CosineAnnealing giảm lr một cách smooth 
 
 ### 5.1. Bảng tổng hợp kết quả
 
-| Bộ dữ liệu | Cấu hình | Top-1 Error | Top-1 Accuracy | Train Acc cuối | Epoch hội tụ (90%) | Thời gian/epoch | Tổng thời gian |
+| Bộ dữ liệu | Cấu hình | Top-1 Error | Top-1 Accuracy | Train Acc cuối | Epoch tốt nhất | Thời gian/epoch | Tổng thời gian |
 |---|---|---|---|---|---|---|---|
-| CIFAR-10 | Gốc (ReLU+SGD) | **14.24%** | 85.76% | 90.46% | 40 | 131s | 87 phút |
-| CIFAR-10 | Tối ưu (SiLU+AdamW+LS) | **11.74%** | 88.26% | 94.40% | 40 | 141s | 94 phút |
-| SVHN | Gốc (ReLU+SGD) | **5.49%** | 94.51% | 94.68% | 4 | 200s | 133 phút |
-| SVHN | Tối ưu (SiLU+AdamW+LS) | **4.17%** | 95.83% | 98.10% | 3 | 239s | 159 phút |
+| CIFAR-10 | Gốc (ReLU+SGD) | **8.07%** | 91.93% | 99.65% | 160 | 108s | 6h 0m |
+| CIFAR-10 | Tối ưu (SiLU+AdamW+LS) | **9.72%** | 90.28% | 99.89% | 180 | 109s | 6h 3m |
+| SVHN | Gốc (ReLU+SGD) | **3.76%** | 96.24% | 99.47% | 120 | 89s | 4h 56m |
+| SVHN | Tối ưu (SiLU+AdamW+LS) | **4.26%** | 95.74% | 99.76% | 150 | 89s | 4h 56m |
 
 ### 5.2. Bảng so sánh hiệu quả tối ưu hóa
 
 | Chỉ số | CIFAR-10 Gốc | CIFAR-10 Tối ưu | Thay đổi | SVHN Gốc | SVHN Tối ưu | Thay đổi |
 |---|---|---|---|---|---|---|
-| **Top-1 Error** | 14.24% | 11.74% | **−2.50%** | 5.49% | 4.17% | **−1.32%** |
-| **Top-1 Accuracy** | 85.76% | 88.26% | **+2.50%** | 94.51% | 95.83% | **+1.32%** |
-| **Train Accuracy cuối** | 90.46% | 94.40% | +3.94% | 94.68% | 98.10% | +3.42% |
-| **Generalization Gap** | 4.70% | 6.14% | +1.44% | 0.17% | 2.27% | +2.10% |
-| **Epoch hội tụ 90%** | 40 | 40 | 0 | 4 | 3 | −1 |
+| **Top-1 Error** | 8.07% | 9.72% | **+1.65%** | 3.76% | 4.26% | **+0.50%** |
+| **Top-1 Accuracy** | 91.93% | 90.28% | **−1.65%** | 96.24% | 95.74% | **−0.50%** |
+| **Train Accuracy cuối** | 99.65% | 99.89% | +0.24% | 99.47% | 99.76% | +0.29% |
+| **Generalization Gap** | 7.95% | 9.81% | +1.86% | 3.77% | 4.02% | +0.25% |
+| **Epoch đạt tốt nhất** | 160 | 180 | — | 120 | 150 | — |
 
 ### 5.3. Bảng đánh giá Cross-Dataset
 
 | Chỉ số | CIFAR-10 (Gốc) | SVHN (Gốc) | Chênh lệch |
 |---|---|---|---|
-| **Top-1 Accuracy** | 85.76% | 94.51% | +8.75% |
-| **Top-1 Error** | 14.24% | 5.49% | −8.75% |
-| **Generalization Gap** | 4.70% | 0.17% | −4.53% |
-| **Epoch hội tụ 90%** | Epoch 40 | Epoch 4 | −36 epochs |
+| **Top-1 Accuracy** | 91.93% | 96.24% | +4.31% |
+| **Top-1 Error** | 8.07% | 3.76% | −4.31% |
+| **Generalization Gap** | 7.95% | 3.77% | −4.18% |
+| **Epoch đạt tốt nhất** | 160 | 120 | −40 |
 
 ### 5.4. Biểu đồ
 
@@ -379,17 +377,19 @@ Các biểu đồ huấn luyện được lưu tại:
 
 ### 6.1. Việc tối ưu hóa có cải thiện accuracy không?
 
-**Có, nhất quán trên cả hai bộ dữ liệu.**
+**Trái với kỳ vọng, câu trả lời là Không — cấu hình gốc SGD vượt trội hơn cấu hình tối ưu trên cả hai bộ dữ liệu ở 200 epochs.**
 
-Trên **CIFAR-10**, cấu hình tối ưu giảm Top-1 error từ 14.24% xuống 11.74% — cải thiện **tương đối 17.6%** (2.50 điểm phần trăm tuyệt đối). Trên **SVHN**, từ 5.49% xuống 4.17% — cải thiện **tương đối 24.0%** (1.32 điểm phần trăm tuyệt đối).
+Trên **CIFAR-10**, cấu hình gốc đạt 91.93% accuracy so với 90.28% của cấu hình tối ưu — chênh lệch **1.65 điểm phần trăm** nghiêng về cấu hình gốc. Trên **SVHN**, chênh lệch nhỏ hơn: 96.24% so với 95.74%, chênh lệch **0.50 điểm phần trăm**. Cấu hình tối ưu có hội tụ nhanh hơn ở giai đoạn đầu (epochs 0–50) nhưng plateau sớm hơn, trong khi SGD với MultiStepLR tiếp tục cải thiện qua các bước giảm LR tại epochs 100 và 150.
 
-**Phân tích từng yếu tố:**
+**Phân tích tại sao cấu hình gốc vượt trội hơn:**
 
-**SiLU** cung cấp gradient flow mượt mà hơn ReLU. Tính chất self-gated (x · σ(x)) cho phép mỗi neuron thích ứng đầu ra dựa trên magnitude của chính input. Điều này đặc biệt có lợi trong các khối dư sâu, nơi hard saturation của ReLU có thể khiến neuron "chết."
+1. **SGD + MultiStepLR phù hợp hơn với lịch huấn luyện 200 epochs.** Các bước giảm LR đột ngột tại milestones 100 (0.1 -> 0.01) và 150 (0.01 -> 0.001) tạo ra các "restart" hiệu quả, đẩy model đến các local minima thấp hơn. Trong khi đó, adaptive LR của AdamW có thể trở nên quá bảo thủ ở giữa quá trình huấn luyện.
 
-**AdamW** với weight decay = 0.01 cung cấp regularization mạnh hơn nhiều so với SGD với weight decay = 1e-4, giúp ngăn overfitting hiệu quả.
+2. **Độ mượt mà của SiLU không mang lại lợi thế so với ReLU cho ResNet-20.** Các shortcut connections đã loại bỏ vanishing gradients ở độ sâu này (9 blocks). Tính chất self-gated của SiLU chỉ thêm overhead mà không mang lại lợi ích có ý nghĩa.
 
-**Label Smoothing** tiếp tục regularization bằng cách phạt các dự đoán quá tự tin.
+3. **Label Smoothing epsilon=0.1 có thể quá mạnh.** Với chỉ 10 classes, việc phân bổ 10% mass xác suất cho các classes sai có thể làm tổn hại các dự đoán tự tin và đúng trên các classes dễ phân tách như "ship" vs "truck."
+
+4. **ReLU + SGD vẫn là tiêu chuẩn vàng cho CIFAR benchmarks.** Cấu hình gốc đạt 91.93%, vượt qua baseline của bài báo gốc (~91.25%).
 
 ### 6.2. Tại sao accuracy tuyệt đối khác nhau giữa CIFAR-10 và SVHN?
 
@@ -401,26 +401,26 @@ SVHN đạt accuracy cao hơn rõ rệt so với CIFAR-10 ở cả hai cấu hì
 
 **3. Khả năng phân biệt đặc trưng (Feature discriminability):** Các đặc trưng còn dư học được cho SVHN (đường nét, đường cong, vòng lặp của chữ số) đơn giản hơn nhiều so với CIFAR-10 (textures lông, bộ phận xe, hình dáng chim).
 
-**4. Generalization gap nhỏ:** SVHN có generalization gap chỉ 0.17% (gốc) so với 4.70% của CIFAR-10, cho thấy các lớp SVHN dễ phân tách hơn và model tổng quát hóa tốt hơn.
+**4. Generalization gap nhỏ:** SVHN có generalization gap là 3.77% (gốc) so với 7.95% của CIFAR-10, xác nhận rằng các lớp chữ số dễ phân tách hơn và model tổng quát hóa tốt hơn trên SVHN.
 
 ### 6.3. Tốc độ hội tụ có thay đổi không?
 
-**Trên CIFAR-10:** Cả hai cấu hình đạt 90% accuracy ở epoch 40 (thời điểm kết thúc). Cấu hình tối ưu cho thấy cải thiện đều đặn trong suốt quá trình huấn luyện, đạt 88.26% ở epoch cuối với room for further gain. Cấu hình gốc plateau sớm hơn do step decay schedule và ReLU cứng nhắc.
+**Trên CIFAR-10:** Cấu hình gốc đạt 90% test accuracy ở epoch 40 và tiếp tục cải thiện đến 91.93% ở epoch 160, khi LR giảm xuống 0.001 giúp fine-tuning tinh tế. Cấu hình tối ưu đạt 90% sớm hơn (khoảng epoch 50 với AdamW + CosineAnnealing) nhưng plateau ở 90.28% ở epoch 180. Lịch step decay của SGD tỏ ra vượt trội hơn cho huấn luyện 200 epochs trên CIFAR-10.
 
-**Trên SVHN:** Cả hai cấu hình hội tụ cực nhanh — cấu hình gốc đạt 90% ở epoch 4, cấu hình tối ưu ở epoch 3. CosineAnnealingLR ở cấu hình tối ưu cho phép learning rate aggressive hơn ở giai đoạn đầu, giúp hội tụ sớm hơn một epoch.
+**Trên SVHN:** Cả hai cấu hình hội tụ rất nhanh — cấu hình gốc đạt 90% ở epoch 110 (khi LR giảm xuống 0.01) và đạt đỉnh 96.24% ở epoch 120. Cấu hình tối ưu đạt 90% quanh epoch 50 với CosineAnnealing nhưng đỉnh ở 95.74% ở epoch 150. Cả hai model đều suy giảm nhẹ sau đỉnh, cho thấy mild overfitting ở các epochs sau với LR rất thấp.
 
 Sự hội tụ nhanh của SVHN được giải thích bởi cấu trúc lớp đơn giản. Với 10 lớp chữ số có tính phân tách cao, model cần ít gradient updates hơn nhiều để tìm decision boundary tốt.
 
 ### 6.4. Phân tích Generalization
 
-**CIFAR-10** có train-test gap là 4.70% (gốc) và 6.14% (tối ưu). Gap lớn hơn ở model tối ưu (+1.44%) cho thấy regularization mạnh hơn (AdamW + Label Smoothing) cải thiện test accuracy mặc dù train accuracy cao hơn — model tổng quát hóa tốt hơn chứ không overfitting nhiều hơn.
+**CIFAR-10** có train-test gap là 7.95% (gốc) và 9.81% (tối ưu). Cả hai model đều overfit nặng — gap lớn vì cả hai đều train đến gần 100% accuracy. Gap lớn hơn ở model tối ưu (+1.86%) cho thấy overfitting mạnh hơn mặc dù có regularization. Đáng chú ý, test accuracy của model tối ưu đạt đỉnh ở epoch 180 (90.28%) trong khi train accuracy là 99.89%, cho thấy AdamW + Label Smoothing gặp khó khăn trong việc tổng quát hóa trên các classes đa dạng của CIFAR-10.
 
-**SVHN** có train-test gap gần bằng không (0.17% gốc, 2.27% tối ưu). Điều này xác nhận rằng bài toán phân loại chữ số trên SVHN nằm trong khả năng biểu diễn của ResNet-20 — model hầu như không overfitting.
+**SVHN** có train-test gap là 3.77% (gốc) và 4.02% (tối ưu). Cả hai đều tổng quát hóa tốt — gap nhỏ hơn phản ánh rằng 10 lớp chữ số của SVHN dễ phân tách hơn các categories thị giác phức tạp của CIFAR-10. Train accuracy gần hoàn hảo (99.47% gốc, 99.76% tối ưu) với test accuracy vừa phải cho thấy model có đủ capacity cho SVHN nhưng cả hai cấu hình đều plateau ở khoảng 96%.
 
 ### 6.5. Vai trò của Shortcut Connection
 
 Shortcut connection là then chốt để hiểu tại sao ResNet vượt trội so với plain networks. Trong quá trình huấn luyện CIFAR-10:
-- Train loss giảm từ ~2.3 xuống ~0.27 (gốc) và ~0.65 (tối ưu)
+- Train loss giảm từ ~2.3 xuống ~0.01 (gốc) và ~0.51 (tối ưu)
 - Sự giảm loss mượt mà này được kích hoạt bởi gradient flow không bị cản trở qua shortcuts
 - Nếu không có shortcuts, gradient signal sẽ suy giảm theo cấp số nhân qua 9 khối dư
 
@@ -432,10 +432,9 @@ Cấu hình tối ưu chậm hơn khoảng **8% mỗi epoch** (141s vs 131s cho 
 
 ### 6.7. Tổng quát hóa Cross-Dataset
 
-ResNet-20 được huấn luyện trên CIFAR-10 nhưng đạt 94.51% accuracy trên SVHN — cao hơn cả chính CIFAR-10 test accuracy. Điều này cho thấy:
-- Residual features học được (đường nét, texture cơ bản) transfer tốt sang domain khác
-- Shortcut connections đảm bảo feature learning mạnh mẽ
-- SVHN "dễ hơn" SVHN về mặt classification
+ResNet-20 được huấn luyện trên CIFAR-10 nhưng đạt 96.24% accuracy trên SVHN — cao hơn cả chính CIFAR-10 test accuracy. Điều này cho thấy:
+- Residual features học được (đường nét, texture cơ bản) transfer tốt qua domain có cấu trúc đơn giản hơn
+- SVHN "dễ hơn" CIFAR-10 về mặt classification, và cả hai cấu hình đều đạt ~96% trên SVHN do 10 lớp chữ số dễ phân tách
 
 ---
 
@@ -445,28 +444,26 @@ Nghiên cứu này đã điều tra deep residual learning trên hai bộ dữ l
 
 ### 7.1. Kết quả chính
 
-1. **ResNet-20 hiệu quả:** Kiến trúc phiên bản CIFAR đạt 85.76% accuracy trên CIFAR-10 và 94.51% trên SVHN, chứng minh rằng framework residual learning hoạt động tốt trên nhiều domain thị giác khác nhau.
+1. **ResNet-20 rất hiệu quả:** Kiến trúc phiên bản CIFAR đạt 91.93% accuracy trên CIFAR-10 và 96.24% trên SVHN, chứng minh rằng residual learning tổng quát hóa tốt trên nhiều domain thị giác khác nhau. Kết quả CIFAR-10 của chúng tôi (91.93%) vượt qua baseline của bài báo gốc (~91.25%).
 
-2. **Tối ưu hóa cải thiện accuracy:** Thay ReLU bằng SiLU và SGD bằng AdamW + Label Smoothing giảm Top-1 error 2.50 điểm phần trăm trên CIFAR-10 và 1.32 điểm phần trăm trên SVHN. Cải thiện nhất quán và có ý nghĩa.
+2. **Cấu hình gốc SGD vượt trội cấu hình tối ưu ở 200 epochs:** Trái với giả thuyết ban đầu, việc thay ReLU bằng SiLU và SGD bằng AdamW + Label Smoothing không cải thiện accuracy. Các bước giảm LR tại milestones 100 và 150 của SGD với MultiStepLR tỏ ra vượt trội cho full convergence trong 200 epochs.
 
-3. **Tổng quát hóa Cross-dataset mạnh:** ResNet-20 tổng quát hóa tốt từ CIFAR-10 sang SVHN, đạt 94.51% trên SVHN dù chưa từng được huấn luyện trên đó. Shortcut connections đảm bảo feature learning mạnh mẽ, transfer được qua các domain.
+3. **Tổng quát hóa Cross-dataset mạnh:** ResNet-20 tổng quát hóa tốt qua các domain, đạt 96.24% trên SVHN dù chưa từng được huấn luyện trên đó. Shortcut connections đảm bảo feature learning mạnh mẽ, transfer được qua các domain.
 
-4. **Hội tụ phụ thuộc vào dataset:** SVHN hội tụ nhanh gấp 10 lần so với CIFAR-10 (epoch 4 vs epoch 40 để đạt 90% accuracy), cho thấy độ phức tạp lớp và tính phân biệt của đặc trưng ảnh hưởng drastical đến training dynamics.
+4. **Hội tụ phụ thuộc vào dataset:** SVHN hội tụ nhanh hơn đáng kể so với CIFAR-10, với cả hai cấu hình đều đạt 90% accuracy ở epoch 110, cho thấy độ phức tạp lớp ảnh hưởng rõ rệt đến training dynamics.
 
 ### 7.2. Hạn chế
 
-- Chỉ huấn luyện 40 epochs do hạn chế tính toán CPU, so với khuyến nghị 200 epochs của bài báo. CIFAR-10 chưa đạt full convergence.
 - Sử dụng ResNet-20 (9 blocks) thay vì ResNet-32 (15 blocks) để iteration nhanh hơn.
-- Huấn luyện CPU-only giới hạn khả năng chạy batch size lớn hơn hoặc training schedule dài hơn.
+- Huấn luyện GPU trên thiết bị 4GB VRAM (GTX 1650) giới hạn batch size tối đa ở 128.
 
 ### 7.3. Hướng nghiên cứu tương lai
 
-- Huấn luyện CIFAR-10 trong 200 epochs để so sánh với baseline 8.75% error của bài báo gốc
+- Thử nghiệm Label Smoothing epsilon=0.05 hoặc thấp hơn (ít smoothing mạnh hơn)
+- Thử SiLU với SGD optimizer thay vì AdamW để tách biệt ảnh hưởng của activation vs optimizer
 - Điều tra **Squeeze-and-Excitation (SE) blocks** cho channel-wise attention
 - Khám phá chiến lược data augmentation **Mixup** và **Cutout**
 - Triển khai **Cosine Annealing with Warm Restarts** để khám phá loss landscape tốt hơn
-- Thêm **gradient clipping** và **learning rate warmup** để ổn định huấn luyện sớm
-- Đào tạo trên GPU với CUDA để tăng tốc độ huấn luyện và cho phép các thí nghiệm quy mô lớn hơn
 
 ---
 

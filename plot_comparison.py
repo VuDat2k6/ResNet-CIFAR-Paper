@@ -123,23 +123,23 @@ def plot_all_comparisons() -> None:
     fig, ax = plt.subplots(figsize=(14, 3.5))
     ax.axis("off")
 
-    col_labels = ["Dataset", "Variant", "Top-1 Error", "Top-1 Accuracy", "Final Train Acc", "Conv. Epoch", "Time/Epoch"]
+    col_labels = ["Dataset", "Variant", "Top-1 Error", "Top-1 Accuracy", "Final Train Acc", "Best Epoch", "Time/Epoch"]
     table_data = [
         ["CIFAR-10", "Original (ReLU+SGD)",
          f"{r_co['best_test_error']*100:.2f}%", f"{r_co['best_test_accuracy']*100:.2f}%",
-         f"{r_co['final_train_accuracy']*100:.2f}%", "40",
+         f"{r_co['final_train_accuracy']*100:.2f}%", f"{r_co.get('best_epoch', 'N/A')}",
          f"{r_co['avg_epoch_time_sec']:.0f}s"],
         ["CIFAR-10", "Optimized (SiLU+AdamW+LS)",
          f"{r_opt_c['best_test_error']*100:.2f}%", f"{r_opt_c['best_test_accuracy']*100:.2f}%",
-         f"{r_opt_c['final_train_accuracy']*100:.2f}%", "40",
+         f"{r_opt_c['final_train_accuracy']*100:.2f}%", f"{r_opt_c.get('best_epoch', 'N/A')}",
          f"{r_opt_c['avg_epoch_time_sec']:.0f}s"],
         ["SVHN", "Original (ReLU+SGD)",
          f"{r_so['best_test_error']*100:.2f}%", f"{r_so['best_test_accuracy']*100:.2f}%",
-         f"{r_so['final_train_accuracy']*100:.2f}%", "4",
+         f"{r_so['final_train_accuracy']*100:.2f}%", f"{r_so.get('best_epoch', 'N/A')}",
          f"{r_so['avg_epoch_time_sec']:.0f}s"],
         ["SVHN", "Optimized (SiLU+AdamW+LS)",
          f"{r_opt_s['best_test_error']*100:.2f}%", f"{r_opt_s['best_test_accuracy']*100:.2f}%",
-         f"{r_opt_s['final_train_accuracy']*100:.2f}%", "3",
+         f"{r_opt_s['final_train_accuracy']*100:.2f}%", f"{r_opt_s.get('best_epoch', 'N/A')}",
          f"{r_opt_s['avg_epoch_time_sec']:.0f}s"],
     ]
 
@@ -174,33 +174,37 @@ def plot_all_comparisons() -> None:
         (r_opt_c["best_test_accuracy"] - r_co["best_test_accuracy"]) * 100,
         (r_opt_s["best_test_accuracy"] - r_so["best_test_accuracy"]) * 100,
     ]
-    delta_conv = [40 - 40, 4 - 3]
+    gap_co = (r_co["final_train_accuracy"] - r_co["best_test_accuracy"]) * 100
+    gap_opt_c = (r_opt_c["final_train_accuracy"] - r_opt_c["best_test_accuracy"]) * 100
+    gap_so = (r_so["final_train_accuracy"] - r_so["best_test_accuracy"]) * 100
+    gap_opt_s = (r_opt_s["final_train_accuracy"] - r_opt_s["best_test_accuracy"]) * 100
 
     bars = axes[0].bar(configs, delta_err, color=["#2196F3", "#4CAF50"])
-    axes[0].set_title("Top-1 Error Reduction")
+    axes[0].set_title("Top-1 Error Reduction (Orig − Opt)")
     axes[0].set_ylabel("Error Reduction (%)")
     axes[0].axhline(0, color="black", linewidth=0.5)
     axes[0].grid(True, alpha=0.3, axis="y")
     for bar, d in zip(bars, delta_err):
-        axes[0].annotate(f"{d:.2f}%", xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+        axes[0].annotate(f"{d:+.2f}%", xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
                           xytext=(0, 3), textcoords="offset points", ha="center", fontsize=11, fontweight="bold")
 
     bars = axes[1].bar(configs, delta_acc, color=["#9C27B0", "#FF9800"])
-    axes[1].set_title("Top-1 Accuracy Improvement")
-    axes[1].set_ylabel("Accuracy Gain (%)")
+    axes[1].set_title("Top-1 Accuracy Change (Opt − Orig)")
+    axes[1].set_ylabel("Accuracy Change (%)")
     axes[1].axhline(0, color="black", linewidth=0.5)
     axes[1].grid(True, alpha=0.3, axis="y")
     for bar, d in zip(bars, delta_acc):
-        axes[1].annotate(f"+{d:.2f}%", xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+        axes[1].annotate(f"{d:+.2f}%", xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
                           xytext=(0, 3), textcoords="offset points", ha="center", fontsize=11, fontweight="bold")
 
-    bars = axes[2].bar(configs, delta_conv, color=["#607D8B", "#795548"])
-    axes[2].set_title("Convergence Epoch Change")
-    axes[2].set_ylabel("Epochs (Orig − Opt)")
+    gap_diffs = [gap_opt_c - gap_co, gap_opt_s - gap_so]
+    bars = axes[2].bar(configs, gap_diffs, color=["#607D8B", "#795548"])
+    axes[2].set_title("Generalization Gap Increase (Opt − Orig)")
+    axes[2].set_ylabel("Gap Increase (%)")
     axes[2].axhline(0, color="black", linewidth=0.5)
     axes[2].grid(True, alpha=0.3, axis="y")
-    for bar, d in zip(bars, delta_conv):
-        axes[2].annotate(f"{d}", xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+    for bar, d in zip(bars, gap_diffs):
+        axes[2].annotate(f"{d:+.2f}%", xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
                            xytext=(0, 3), textcoords="offset points", ha="center", fontsize=11, fontweight="bold")
 
     plt.tight_layout()
