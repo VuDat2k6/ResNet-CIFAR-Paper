@@ -1,0 +1,27 @@
+{
+  "dataset": "svhn",
+  "variant": "seresnet20",
+  "config": {
+    "width_multiplier": 1,
+    "activation": "silu",
+    "drop_rate": 0.0,
+    "stochastic_depth_prob": 0.8,
+    "cutmix_prob": 0.3,
+    "cutmix_beta": 1.0,
+    "optimizer": "sgd",
+    "label_smoothing": 0.1
+  },
+  "best_test_accuracy": 0.9644283958205285,
+  "best_test_error": 0.03557160417947147,
+  "best_epoch": 100,
+  "final_train_loss": 0.7949967478720332,
+  "final_test_loss": 0.21479787072596113,
+  "final_train_accuracy": 0.9162810379895436,
+  "final_test_accuracy": 0.9644283958205285,
+  "convergence_epoch": 5,
+  "avg_epoch_time_sec": 190.6880730032921,
+  "total_train_time_sec": 19068.80730032921,
+  "num_parameters": 4359242,
+  "seed": 42,
+  "epochs": 100
+}

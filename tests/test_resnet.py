@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from src.resnet import resnet20, resnet32, LabelSmoothingCrossEntropy, _ResidualBlock
+from src.models.resnet import resnet20, resnet32, LabelSmoothingCrossEntropy, _ResidualBlock
 
 
 class TestResidualBlockShape:
@@ -80,9 +80,9 @@ class TestLossDecrease:
         )
 
         losses = []
+        x = torch.randn(16, 3, 32, 32)
+        targets = torch.randint(0, 10, (16,))
         for _ in range(3):
-            x = torch.randn(16, 3, 32, 32)
-            targets = torch.randint(0, 10, (16,))
             optimizer.zero_grad()
             out = model(x)
             loss = criterion(out, targets)
@@ -100,9 +100,9 @@ class TestLossDecrease:
         optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.01)
 
         losses = []
+        x = torch.randn(16, 3, 32, 32)
+        targets = torch.randint(0, 10, (16,))
         for _ in range(5):
-            x = torch.randn(16, 3, 32, 32)
-            targets = torch.randint(0, 10, (16,))
             optimizer.zero_grad()
             out = model(x)
             loss = criterion(out, targets)

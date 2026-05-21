@@ -1,0 +1,24 @@
+{
+  "dataset": "cifar10",
+  "variant": "resnet20_kd",
+  "config": {
+    "temperature": 4.0,
+    "alpha": 0.6,
+    "optimizer": "sgd",
+    "base_lr": 0.1,
+    "weight_decay": 0.0005,
+    "warmup_epochs": 5
+  },
+  "best_test_accuracy": 0.4975,
+  "best_test_error": 0.5025,
+  "best_epoch": 1,
+  "final_train_loss": 1.368776929473877,
+  "final_test_loss": 1.427542483329773,
+  "final_train_accuracy": 0.40128,
+  "final_test_accuracy": 0.4975,
+  "convergence_epoch": 1,
+  "avg_epoch_time_sec": 65.59685158729553,
+  "total_train_time_sec": 65.59685158729553,
+  "seed": 42,
+  "epochs": 1
+}

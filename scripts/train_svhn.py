@@ -15,8 +15,8 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 
-sys.path.insert(0, str(Path(__file__).parent))
-from src.resnet import resnet20
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from src.models.resnet import resnet20
 from src.data import build_loaders
 from src.utils import set_seed
 

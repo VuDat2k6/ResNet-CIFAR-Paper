@@ -27,3 +27,7 @@ Thumbs.db
 *.tmp
 *.swp
 *~
+
+# Academic Reports in other languages
+documents/REPORT_VIETNAMESE.md
+

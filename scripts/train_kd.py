@@ -22,9 +22,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-sys.path.insert(0, str(Path(__file__).parent))
-from src.resnet import resnet20
-from src.resnet_v2 import seresnet20
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from src.models.resnet import resnet20
+from src.models.se_resnet import seresnet20
 from src.data import build_loaders
 from src.utils import set_seed
 
@@ -200,7 +200,19 @@ def main() -> None:
     teacher_path = Path("outputs/cifar10_seresnet/best_model.pth")
     if teacher_path.exists():
         print(f"Loading teacher weights from {teacher_path}...")
-        teacher.load_state_dict(torch.load(teacher_path, map_location=device))
+        # Load with strict=False because layer_scale might be missing from the original checkpoint
+        missing_keys, unexpected_keys = teacher.load_state_dict(
+            torch.load(teacher_path, map_location=device), strict=False
+        )
+        if missing_keys:
+            print(f"Teacher loaded with missing keys: {missing_keys}")
+            # If layer_scale was missing, initialize it to 1.0 (original teacher was trained without LayerScale, meaning scale was 1.0)
+            for name, param in teacher.named_parameters():
+                if "layer_scale" in name:
+                    print(f"Initializing missing key {name} to 1.0 (identity) for teacher compatibility.")
+                    nn.init.constant_(param, 1.0)
+        if unexpected_keys:
+            print(f"Teacher loaded with unexpected keys: {unexpected_keys}")
     else:
         print(f"WARNING: Teacher model checkpoint not found at {teacher_path}!")
         print("We will proceed using an untrained teacher model (random initialization).")

@@ -1,0 +1,27 @@
+{
+  "dataset": "cifar10",
+  "variant": "seresnet20_mixup",
+  "config": {
+    "width_multiplier": 1,
+    "activation": "silu",
+    "drop_rate": 0.0,
+    "stochastic_depth_prob": 0.8,
+    "mixup_prob": 0.5,
+    "mixup_alpha": 0.4,
+    "optimizer": "sgd",
+    "label_smoothing": 0.1
+  },
+  "best_test_accuracy": 0.9384,
+  "best_test_error": 0.06159999999999999,
+  "best_epoch": 93,
+  "final_train_loss": 0.7901374273681641,
+  "final_test_loss": 0.265209419298172,
+  "final_train_accuracy": 0.94568,
+  "final_test_accuracy": 0.9363,
+  "convergence_epoch": 47,
+  "avg_epoch_time_sec": 259.23385649442673,
+  "total_train_time_sec": 25923.385649442673,
+  "num_parameters": 4360586,
+  "seed": 42,
+  "epochs": 100
+}

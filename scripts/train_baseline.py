@@ -1,10 +1,12 @@
-"""Training script for ResNet-20 Optimized (SiLU + AdamW + Label Smoothing)."""
+"""Training script for ResNet-20 on CIFAR-10 (original baseline)."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import time
 from pathlib import Path
 
 import matplotlib
@@ -15,18 +17,20 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 
-sys.path.insert(0, str(Path(__file__).parent))
-from src.resnet import resnet20, LabelSmoothingCrossEntropy
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from src.models.resnet import resnet20
 from src.data import build_loaders
 from src.utils import set_seed
 
 RANDOM_SEED = 42
-LEARNING_RATE = 1e-3
-WEIGHT_DECAY = 0.01
+LEARNING_RATE = 0.1
+MOMENTUM = 0.9
+WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 128
 EPOCHS = 200
+MILESTONES = [100, 150]
+GAMMA = 0.1
 NUM_WORKERS = 0
-LABEL_SMOOTHING = 0.1
 
 
 def train_epoch(
@@ -88,23 +92,22 @@ def plot_metrics(
     train_accs: list[float],
     test_accs: list[float],
     output_path: str,
-    title: str,
 ) -> None:
     epochs = range(1, len(train_losses) + 1)
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    fig.suptitle(title, fontsize=14)
+    fig.suptitle("CIFAR-10 ResNet-20 Original — Training Curves", fontsize=14)
 
-    axes[0].plot(epochs, train_losses, label="Train Loss", color="#9C27B0")
-    axes[0].plot(epochs, test_losses, label="Test Loss", color="#FF5722", linestyle="--")
+    axes[0].plot(epochs, train_losses, label="Train Loss", color="#2196F3")
+    axes[0].plot(epochs, test_losses, label="Test Loss", color="#F44336", linestyle="--")
     axes[0].set_title("Loss per Epoch")
     axes[0].set_xlabel("Epoch")
-    axes[0].set_ylabel("Label-Smoothing Loss")
+    axes[0].set_ylabel("Cross-Entropy Loss")
     axes[0].legend()
     axes[0].grid(True, alpha=0.3)
 
-    axes[1].plot(epochs, [a * 100 for a in train_accs], label="Train Acc", color="#9C27B0")
-    axes[1].plot(epochs, [a * 100 for a in test_accs], label="Test Acc", color="#FF5722", linestyle="--")
+    axes[1].plot(epochs, [a * 100 for a in train_accs], label="Train Acc", color="#2196F3")
+    axes[1].plot(epochs, [a * 100 for a in test_accs], label="Test Acc", color="#F44336", linestyle="--")
     axes[1].set_title("Accuracy per Epoch")
     axes[1].set_xlabel("Epoch")
     axes[1].set_ylabel("Accuracy (%)")
@@ -117,8 +120,7 @@ def plot_metrics(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train ResNet-20 Optimized on CIFAR-10 / SVHN")
-    parser.add_argument("--dataset", type=str, default="cifar10", choices=["cifar10", "svhn"])
+    parser = argparse.ArgumentParser(description="Train ResNet-20 on CIFAR-10")
     parser.add_argument("--epochs", type=int, default=EPOCHS)
     parser.add_argument("--batch_size", type=int, default=BATCH_SIZE)
     args = parser.parse_args()
@@ -127,25 +129,26 @@ def main() -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
 
-    output_dir = Path(f"outputs/{args.dataset}_optimized")
+    output_dir = Path("outputs/cifar10_original")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     train_loader, test_loader = build_loaders(
-        args.dataset, batch_size=args.batch_size, num_workers=NUM_WORKERS,
+        "cifar10", batch_size=args.batch_size, num_workers=NUM_WORKERS,
     )
     print(f"Train batches: {len(train_loader)}, Test batches: {len(test_loader)}")
 
-    model = resnet20(activation="silu").to(device)
-    criterion = LabelSmoothingCrossEntropy(epsilon=LABEL_SMOOTHING)
-    eval_criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(
+    model = resnet20(activation="relu").to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(
         model.parameters(),
         lr=LEARNING_RATE,
+        momentum=MOMENTUM,
         weight_decay=WEIGHT_DECAY,
     )
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
+    scheduler = optim.lr_scheduler.MultiStepLR(
+        optimizer, milestones=MILESTONES, gamma=GAMMA,
+    )
 
-    import time
     best_test_acc = 0.0
     train_losses, test_losses = [], []
     train_accs, test_accs = [], []
@@ -156,7 +159,7 @@ def main() -> None:
         train_loss, train_acc = train_epoch(
             model, train_loader, criterion, optimizer, device,
         )
-        test_loss, test_acc = evaluate(model, test_loader, eval_criterion, device)
+        test_loss, test_acc = evaluate(model, test_loader, criterion, device)
         elapsed = time.time() - t0
         epoch_times.append(elapsed)
         scheduler.step()
@@ -179,9 +182,8 @@ def main() -> None:
             )
 
     results = {
-        "dataset": args.dataset,
-        "variant": "optimized",
-        "optimization": "SiLU + AdamW + Label Smoothing (0.1)",
+        "dataset": "cifar10",
+        "variant": "original",
         "best_test_accuracy": best_test_acc,
         "best_test_error": 1.0 - best_test_acc,
         "final_train_loss": train_losses[-1],
@@ -200,9 +202,8 @@ def main() -> None:
     with open(output_dir / "results.json", "w") as f:
         json.dump(results, f, indent=2)
 
-    title = f"{args.dataset.upper()} ResNet-20 Optimized — Training Curves (SiLU + AdamW + Label Smoothing)"
     plot_path = output_dir / "training_curves.png"
-    plot_metrics(train_losses, test_losses, train_accs, test_accs, str(plot_path), title)
+    plot_metrics(train_losses, test_losses, train_accs, test_accs, str(plot_path))
     print(f"\nPlots saved to {plot_path}")
     print(f"Best test accuracy: {best_test_acc*100:.2f}%  (Top-1 Error: {(1-best_test_acc)*100:.2f}%)")
 

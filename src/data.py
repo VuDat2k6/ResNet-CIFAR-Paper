@@ -1,8 +1,11 @@
-"""Data loaders for CIFAR-10 and SVHN."""
+"""Data loaders for CIFAR-10 and SVHN with CutMix augmentation."""
 
 from __future__ import annotations
 
+import random
+
 import torch
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
@@ -81,3 +84,109 @@ def build_loaders(
     )
 
     return train_loader, test_loader
+
+
+# ---------------------------------------------------------------------------
+# CutMix Augmentation
+# ---------------------------------------------------------------------------
+
+class CutMix:
+    """CutMix data augmentation.
+
+    From: "CutMix: Regularization Strategy to Train Strong Classifiers with
+    Localizable Features" (Yun et al., ICCV 2019).
+
+    Cuts rectangular patches from training images and pastes them into
+    other images. Labels are mixed proportionally to the patch area.
+    This forces the network to learn from less discriminative regions,
+    improving generalization and localization.
+    """
+
+    def __init__(self, beta: float = 1.0, prob: float = 0.5) -> None:
+        self.beta = beta
+        self.prob = prob
+
+    def __call__(
+        self,
+        images: torch.Tensor,
+        targets: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]:
+        """Apply CutMix to a batch of images.
+
+        Returns:
+            mixed_images: CutMix-applied images
+            targets_a: original targets
+            targets_b: shuffled targets
+            lam: actual lambda (adjusted by patch area)
+        """
+        if random.random() > self.prob:
+            return images, targets, targets, 1.0
+
+        batch_size = images.size(0)
+        indices = torch.randperm(batch_size, device=images.device)
+        targets_b = targets[indices]
+
+        lam = random.betavariate(self.beta, self.beta)
+        lam = max(lam, 1.0 - lam)
+
+        _, _, h, w = images.size()
+        cut_rat = (1.0 - lam) ** 0.5
+        cut_w = int(w * cut_rat)
+        cut_h = int(h * cut_rat)
+
+        cx = random.randint(0, w)
+        cy = random.randint(0, h)
+
+        bbx1 = max(0, cx - cut_w // 2)
+        bby1 = max(0, cy - cut_h // 2)
+        bbx2 = min(w, cx + cut_w // 2)
+        bby2 = min(h, cy + cut_h // 2)
+
+        images_mixed = images.clone()
+        images_mixed[:, :, bby1:bby2, bbx1:bbx2] = images[indices, :, bby1:bby2, bbx1:bbx2]
+
+        lam = 1.0 - ((bbx2 - bbx1) * (bby2 - bby1)) / (w * h)
+
+        return images_mixed, targets, targets_b, lam
+
+
+class MixUp:
+    """MixUp data augmentation.
+
+    From: "mixup: Beyond Empirical Risk Minimization" (Zhang et al., ICLR 2018).
+
+    Linearly interpolates between pairs of images and their labels.
+    Improves calibration and reduces overfitting.
+    """
+
+    def __init__(self, alpha: float = 0.2, prob: float = 0.5) -> None:
+        self.alpha = alpha
+        self.prob = prob
+
+    def __call__(
+        self,
+        images: torch.Tensor,
+        targets: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]:
+        """Apply MixUp to a batch of images.
+
+        Returns:
+            mixed_images: MixUp-applied images
+            targets_a: original targets
+            targets_b: shuffled targets
+            lam: mixing coefficient
+        """
+        if random.random() > self.prob or self.alpha <= 0:
+            return images, targets, targets, 1.0
+
+        lam = random.betavariate(self.alpha, self.alpha)
+        lam = max(lam, 1.0 - lam)
+
+        batch_size = images.size(0)
+        indices = torch.randperm(batch_size, device=images.device)
+
+        images_mixed = lam * images + (1.0 - lam) * images[indices]
+        targets_a = targets
+        targets_b = targets[indices]
+
+        return images_mixed, targets_a, targets_b, lam
