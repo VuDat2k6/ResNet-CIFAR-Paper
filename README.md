@@ -142,5 +142,3 @@ Detailed academic descriptions, slide scripts, and mathematical explanations can
 *   [REPORT.md (English Research Report)](documents/REPORT.md)
 *   [SUMMARY.md (Project Summary Map)](documents/SUMMARY.md)
 *   [COLAB_GUIDE.md (Colab Execution Guide)](documents/COLAB_GUIDE.md)
-*   [PRESENTATION_SCRIPT.md (Vietnamese Presentation Slide Guide)](documents/PRESENTATION_SCRIPT.md)
-*   [REPORT_PRESENTATION_GUIDE.md (Vietnamese report.md Companion Q&A Guide)](documents/REPORT_PRESENTATION_GUIDE.md)
