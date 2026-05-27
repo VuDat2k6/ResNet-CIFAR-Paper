@@ -29,11 +29,8 @@ Paper/
 ├── documents/                  # Reference papers, guides, and academic reports
 │   ├── 1512.03385v1.pdf        # Reference ResNet-20 paper
 │   ├── REPORT.md               # Complete Research Report (English)
-│   ├── REPORT_VIETNAMESE.md    # Detailed Research Report (Vietnamese - Gitignored)
 │   ├── SUMMARY.md              # Project summary & tasks map
-│   ├── COLAB_GUIDE.md          # Guide for fast GPU execution on Google Colab
-│   ├── PRESENTATION_SCRIPT.md  # Slide-by-slide kịch bản thuyết trình (Vietnamese)
-│   └── REPORT_PRESENTATION_GUIDE.md # Detailed guide for presenting REPORT.md
+│   ├── COLAB_GUIDE.md          # Guide for fast GPU execution on Google Colab/Kaggle
 ├── src/                        # Core PyTorch source code
 │   ├── models/                 # Model architecture modules
 │   │   ├── __init__.py         # Package entrypoint (exports architectures & criteria)
