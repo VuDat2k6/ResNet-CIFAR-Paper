@@ -334,6 +334,16 @@ Analysis:
 
 4. **The original SGD+MultiStepLR schedule is well-tuned for CIFAR benchmarks.** The original configuration achieves 91.93%, exceeding the paper's reported ~91.25% baseline.
 
+5. **The Early-Stage Convergence Advantage (Epochs 1-40) vs. Late-Stage Plateau**:
+   During the first 40 epochs, the optimized variant (SiLU + AdamW + Cosine Annealing) converges faster and performs better than the baseline. This is due to:
+   * **AdamW's Adaptive Gradients**: By dynamically adjusting learning rates per parameter based on historical gradients, AdamW navigates flat regions of the loss landscape rapidly, accelerating early training.
+   * **SiLU's Smoothness**: The smooth, non-monotonic shape of SiLU ($x \cdot \sigma(x)$) allows small negative gradients to flow back, which helps coordinate features in randomly initialized layers more fluidly than ReLU's hard zero-gate.
+   * **Baseline SGD's Initial High LR Noise**: During these early epochs, the baseline SGD operates at a high constant learning rate of 0.1, causing significant stochastic noise and validation fluctuations.
+   
+   However, after epoch 40-100, this dynamics shifts:
+   * **LR Over-Dampening**: AdamW's accumulated historical gradient moments make the adaptive step size extremely small and conservative too early, trapping the model in local sub-optimal minima.
+   * **SGD's Milestone Restarts**: SGD's high initial learning rate allows thorough exploration of the loss landscape. When it drops 10x at milestones 100 and 150, it triggers sharp phase transitions, plunging the model into deep, highly generalizable basins. Label Smoothing also prevents the model from forming highly confident predictions on very clear classes in the late stage, capping its final accuracy.
+
 ### 5.3 Task C: Why SE-ResNet-20 Achieved the Best Results
 
 SE-ResNet-20 outperformed both the original and optimized variants:
